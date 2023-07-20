@@ -15,7 +15,7 @@
         @dragover.prevent="changeVSheetColor = true"
         @drop.prevent="onDrop"
         @dragleave="changeVSheetColor = false"
-        @click="$refs.fileInput.$el.click()"
+        @click="$refs.fileInput.$refs.input.click()"
       >
         <v-icon x-large>
           mdi-upload
