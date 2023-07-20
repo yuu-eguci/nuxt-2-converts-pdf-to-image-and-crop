@@ -1,15 +1,32 @@
 <template>
   <v-row justify="center" align="center">
     <v-col cols="12" sm="8" md="6">
-      <v-file-input
-        accept="application/pdf"
-        label="Upload PDF"
-        outlined
-        dense
-        prepend-icon=""
-        multiple
-        @change="onFileChange"
-      />
+      <!--
+        dragover と drop 両方を prevent することで
+        ブラウザの規定の動作 (別タブでファイルを開く) をキャンセル。
+      -->
+      <div
+        class="drag-drop-area d-flex flex-column align-center justify-center pa-5 lighten-3"
+        @dragover.prevent
+        @drop.prevent="onDrop"
+        @click="$refs.fileInput.$el.click()"
+      >
+        <v-icon x-large>
+          mdi-upload
+        </v-icon>
+        <p>Drop your file here, or click to select file to upload.</p>
+        <v-file-input
+          ref="fileInput"
+          accept="application/pdf"
+          label="Upload PDF"
+          outlined
+          dense
+          prepend-icon=""
+          multiple
+          @change="onFileChange"
+        />
+      </div>
+
       <div v-for="(src, index) in imgSrcs" :key="index">
         <img :src="src" alt="pdf content">
       </div>
@@ -29,6 +46,11 @@ export default {
     }
   },
   methods: {
+    onDrop (event) {
+      const files = event.dataTransfer.files
+      this.onFileChange(Array.from(files))
+    },
+
     // NOTE: v-file-input の @change イベントはファイルを直接返します。
     onFileChange (files) {
       // NOTE: とりあえず1ファイルに対応。
