@@ -2,13 +2,19 @@
   <v-row justify="center" align="center">
     <v-col cols="12" sm="8" md="6">
       <!--
-        dragover と drop 両方を prevent することで
-        ブラウザの規定の動作 (別タブでファイルを開く) をキャンセル。
+        dragover, drop 両方 prevent:
+          ブラウザの規定の動作 (別タブでファイルを開く) をキャンセル。
+        色を変更:
+          dragover で色を変える
+          dragleave, drop で色を戻す
       -->
-      <div
-        class="drag-drop-area d-flex flex-column align-center justify-center pa-5 lighten-3"
-        @dragover.prevent
+      <v-sheet
+        class="drag-drop-area d-flex flex-column align-center pa-5"
+        elevation="4"
+        :color="changeVSheetColor ? 'blue lighten-2' : 'lighten-3'"
+        @dragover.prevent="changeVSheetColor = true"
         @drop.prevent="onDrop"
+        @dragleave="changeVSheetColor = false"
         @click="$refs.fileInput.$el.click()"
       >
         <v-icon x-large>
@@ -17,15 +23,13 @@
         <p>Drop your file here, or click to select file to upload.</p>
         <v-file-input
           ref="fileInput"
-          accept="application/pdf"
-          label="Upload PDF"
-          outlined
-          dense
+          accept="application/pdf, image/*"
+          label="Upload PDF or Image"
           prepend-icon=""
           multiple
           @change="onFileChange"
         />
-      </div>
+      </v-sheet>
 
       <div v-for="(src, index) in imgSrcs" :key="index">
         <img :src="src" alt="pdf content">
@@ -42,11 +46,13 @@ export default {
   name: 'IndexPage',
   data () {
     return {
-      imgSrcs: []
+      imgSrcs: [],
+      changeVSheetColor: false
     }
   },
   methods: {
     onDrop (event) {
+      this.changeVSheetColor = false
       const files = event.dataTransfer.files
       this.onFileChange(Array.from(files))
     },
@@ -102,3 +108,9 @@ export default {
   }
 }
 </script>
+
+<style scoped>
+.drag-drop-area {
+  transition: background-color 0.5s ease;
+}
+</style>
