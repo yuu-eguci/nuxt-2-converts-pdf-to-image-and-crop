@@ -5,14 +5,17 @@
         dragover, drop 両方 prevent:
           ブラウザの規定の動作 (別タブでファイルを開く) をキャンセル。
         色を変更:
-          dragover で色を変える
-          dragleave, drop で色を戻す
+          dragover, mouseover で色を変える
+          dragleave, drop, mouseleave で色を戻す
+        NOTE: @drop だけ、 changeVSheetColor 変更処理が method に書いてあるのが気になる……。
       -->
       <v-sheet
         class="drag-drop-area d-flex flex-column align-center pa-5"
         elevation="4"
         :color="changeVSheetColor ? 'blue lighten-2' : 'lighten-3'"
         @dragover.prevent="changeVSheetColor = true"
+        @mouseover="changeVSheetColor = true"
+        @mouseleave="changeVSheetColor = false"
         @drop.prevent="onDrop"
         @dragleave="changeVSheetColor = false"
         @click="$refs.fileInput.$refs.input.click()"
