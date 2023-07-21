@@ -99,9 +99,14 @@ export default {
     endSelection () {
       // 選択終了。
       this.isSelecting = false
+      // 選択範囲の左上と右下の点を取得。
+      const startX = Math.min(this.selectionStart.x, this.selectionEnd.x)
+      const startY = Math.min(this.selectionStart.y, this.selectionEnd.y)
+      const endX = Math.max(this.selectionStart.x, this.selectionEnd.x)
+      const endY = Math.max(this.selectionStart.y, this.selectionEnd.y)
       // 選択範囲の幅と高さを計算。
-      const width = this.selectionEnd.x - this.selectionStart.x
-      const height = this.selectionEnd.y - this.selectionStart.y
+      const width = endX - startX
+      const height = endY - startY
       // 選択範囲の画像を切り出す。
       const canvas = document.createElement('canvas')
       canvas.width = width
@@ -109,7 +114,7 @@ export default {
       const ctx = canvas.getContext('2d')
       ctx.drawImage(
         this.$refs.uploadedImage,
-        this.selectionStart.x, this.selectionStart.y, width, height,
+        startX, startY, width, height,
         0, 0, width, height
       )
       // Canvas を data URL へ変換。
