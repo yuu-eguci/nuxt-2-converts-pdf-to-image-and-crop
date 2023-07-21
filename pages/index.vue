@@ -35,7 +35,10 @@
       </v-sheet>
 
       <template v-if="imgSrc">
-        <div ref="selectionOverlay" style="position: relative;">
+        <div
+          ref="selectionOverlay"
+          style="position: relative;"
+        >
           <img
             ref="uploadedImage"
             :src="imgSrc"
