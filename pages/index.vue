@@ -34,7 +34,7 @@
         />
       </v-sheet>
 
-      <div v-if="imgSrc">
+      <template v-if="imgSrc">
         <div ref="selectionOverlay" style="position: relative;">
           <img
             ref="uploadedImage"
@@ -51,7 +51,7 @@
           />
         </div>
         <img ref="croppedImage" alt="Cropped content">
-      </div>
+      </template>
     </v-col>
   </v-row>
 </template>
