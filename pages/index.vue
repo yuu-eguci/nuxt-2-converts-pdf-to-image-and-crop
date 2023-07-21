@@ -71,7 +71,7 @@ const resizeImage = (image, callback) => {
   imgElement.src = image
   imgElement.onload = () => {
     // リサイズ後のサイズを指定します。
-    const resizedWidth = 800
+    const resizedWidth = 500
     const resizedHeight = imgElement.height * (resizedWidth / imgElement.width)
     canvas.width = resizedWidth
     canvas.height = resizedHeight
