@@ -29,6 +29,7 @@
           accept="application/pdf, image/*"
           label="Upload PDF or Image"
           prepend-icon=""
+          hide-input
           @change="onFileChange"
         />
       </v-sheet>
