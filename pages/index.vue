@@ -88,6 +88,7 @@ export default {
   data () {
     return {
       imgSrc: '',
+      imgSrcs: [],
       changeVSheetColor: false,
       isSelecting: false,
       selectionStart: { x: 0, y: 0 },
@@ -165,6 +166,7 @@ export default {
         const imgSrc = URL.createObjectURL(file)
         resizeImage(imgSrc, (resizedImgSrc) => {
           this.imgSrc = resizedImgSrc
+          this.imgSrcs.push(resizedImgSrc)
         })
         return
       }
@@ -202,6 +204,7 @@ export default {
               const imgSrc = canvas.toDataURL()
               resizeImage(imgSrc, (resizedImgSrc) => {
                 this.imgSrc = resizedImgSrc
+                this.imgSrcs.push(resizedImgSrc)
               })
             })
           })
