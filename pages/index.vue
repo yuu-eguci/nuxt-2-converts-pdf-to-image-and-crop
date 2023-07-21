@@ -52,9 +52,9 @@
           ref="overlayCanvas"
           style="position: absolute; top: 0; left: 0;"
           @mousedown="startSelection"
-          @mousemove="updateSelection"
-          @mouseup="endSelection"
-          @mouseleave="endSelection"
+          @mousemove="updateSelection($event, index)"
+          @mouseup="endSelection(index)"
+          @mouseleave="endSelection(index)"
         />
       </div>
       <img ref="croppedImage" alt="Cropped content">
@@ -107,7 +107,7 @@ export default {
       this.selectionEnd = { x: event.offsetX, y: event.offsetY }
     },
 
-    updateSelection (event) {
+    updateSelection (event, index) {
       // 選択が始まっていない?
       if (!this.isSelecting) {
         return
@@ -115,7 +115,7 @@ export default {
       // いまここ。
       this.selectionEnd = { x: event.offsetX, y: event.offsetY }
       // Canvas 取得。
-      const canvas = this.$refs.overlayCanvas
+      const canvas = this.$refs.overlayCanvas[index]
       const ctx = canvas.getContext('2d')
       // 前回の描画を消す。
       ctx.clearRect(0, 0, canvas.width, canvas.height)
@@ -125,7 +125,7 @@ export default {
       ctx.strokeRect(this.selectionStart.x, this.selectionStart.y, width, height)
     },
 
-    endSelection () {
+    endSelection (index) {
       // 選択終了。
       this.isSelecting = false
       // 選択範囲の左上と右下の点を取得。
@@ -142,11 +142,12 @@ export default {
       canvas.height = height
       const ctx = canvas.getContext('2d')
       ctx.drawImage(
-        this.$refs.uploadedImage,
+        this.$refs.uploadedImage[index],
         startX, startY, width, height,
         0, 0, width, height
       )
       // Canvas を data URL へ変換。
+      // NOTE: croppedImage は v-for の外だよ。 index で取得するヤツじゃない。
       this.$refs.croppedImage.src = canvas.toDataURL()
     },
 
