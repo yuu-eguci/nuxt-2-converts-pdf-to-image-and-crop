@@ -34,27 +34,30 @@
         />
       </v-sheet>
 
-      <template v-if="imgSrc">
-        <div
-          ref="selectionOverlay"
-          style="position: relative;"
+      <div
+        v-for="(imgSrc, index) in imgSrcs"
+        :key="index"
+        style="position: relative;"
+      >
+        <!--
+          NOTE: ref が固定値なので、エッてなると思うけど
+                v-for の中の ref は配列になるという仕様があるので大丈夫。
+        -->
+        <img
+          ref="uploadedImage"
+          :src="imgSrc"
+          @load="onImageUploaded(index)"
         >
-          <img
-            ref="uploadedImage"
-            :src="imgSrc"
-            @load="onImageUploaded"
-          >
-          <canvas
-            ref="overlayCanvas"
-            style="position: absolute; top: 0; left: 0;"
-            @mousedown="startSelection"
-            @mousemove="updateSelection"
-            @mouseup="endSelection"
-            @mouseleave="endSelection"
-          />
-        </div>
-        <img ref="croppedImage" alt="Cropped content">
-      </template>
+        <canvas
+          ref="overlayCanvas"
+          style="position: absolute; top: 0; left: 0;"
+          @mousedown="startSelection"
+          @mousemove="updateSelection"
+          @mouseup="endSelection"
+          @mouseleave="endSelection"
+        />
+      </div>
+      <img ref="croppedImage" alt="Cropped content">
     </v-col>
   </v-row>
 </template>
@@ -87,7 +90,6 @@ export default {
   name: 'IndexPage',
   data () {
     return {
-      imgSrc: '',
       imgSrcs: [],
       changeVSheetColor: false,
       isSelecting: false,
@@ -165,7 +167,6 @@ export default {
         // 画像ファイルの場合は、PDF -> 画像化は不要。
         const imgSrc = URL.createObjectURL(file)
         resizeImage(imgSrc, (resizedImgSrc) => {
-          this.imgSrc = resizedImgSrc
           this.imgSrcs.push(resizedImgSrc)
         })
         return
@@ -203,7 +204,6 @@ export default {
               // キャンバスの内容を Data URL として取得。
               const imgSrc = canvas.toDataURL()
               resizeImage(imgSrc, (resizedImgSrc) => {
-                this.imgSrc = resizedImgSrc
                 this.imgSrcs.push(resizedImgSrc)
               })
             })
@@ -215,10 +215,12 @@ export default {
       })
     },
 
-    onImageUploaded () {
+    onImageUploaded (index) {
       // "canvas のサイズ = 画像のサイズ" にします。
-      const canvas = this.$refs.overlayCanvas
-      const image = this.$refs.uploadedImage
+      // NOTE: v-for の中の ref は配列になる。
+      //       ということで index で取得できます。
+      const canvas = this.$refs.overlayCanvas[index]
+      const image = this.$refs.uploadedImage[index]
       canvas.width = image.naturalWidth
       canvas.height = image.naturalHeight
     }
