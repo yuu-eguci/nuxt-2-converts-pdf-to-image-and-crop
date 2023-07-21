@@ -29,13 +29,12 @@
           accept="application/pdf, image/*"
           label="Upload PDF or Image"
           prepend-icon=""
-          multiple
           @change="onFileChange"
         />
       </v-sheet>
 
-      <div v-for="(src, index) in imgSrcs" :key="index">
-        <img :src="src" alt="pdf content">
+      <div v-if="imgSrc">
+        <img :src="imgSrc">
       </div>
     </v-col>
   </v-row>
@@ -49,7 +48,7 @@ export default {
   name: 'IndexPage',
   data () {
     return {
-      imgSrcs: [],
+      imgSrc: '',
       changeVSheetColor: false
     }
   },
@@ -61,6 +60,7 @@ export default {
     },
 
     // NOTE: v-file-input の @change イベントはファイルを直接返します。
+    //       型は [File]
     onFileChange (files) {
       // NOTE: とりあえず1ファイルに対応。
       const file = files[0]
@@ -69,8 +69,8 @@ export default {
       }
 
       if (file.type.startsWith('image/')) {
-        // 画像ファイルの場合は、そのまま imgSrcs に追加。
-        this.imgSrcs.push(URL.createObjectURL(file))
+        // 画像ファイルの場合は、この先の PDF -> 画像化は不要。
+        this.imgSrc = URL.createObjectURL(file)
         return
       }
 
@@ -104,8 +104,8 @@ export default {
             // ページの描画タスクを開始。
             const renderTask = page.render(renderContext)
             renderTask.promise.then(() => {
-              // キャンバスの内容を Data URL として取得して、 imgSrcs に追加。
-              this.imgSrcs.push(canvas.toDataURL())
+              // キャンバスの内容を Data URL として取得。
+              this.imgSrc = canvas.toDataURL()
             })
           })
         }
