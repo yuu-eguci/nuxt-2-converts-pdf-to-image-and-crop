@@ -47,6 +47,7 @@
             @mousedown="startSelection"
             @mousemove="updateSelection"
             @mouseup="endSelection"
+            @mouseleave="endSelection"
           />
         </div>
         <img ref="croppedImage" alt="Cropped content">
