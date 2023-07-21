@@ -97,6 +97,8 @@ export default {
       this.isSelecting = true
       // 選択開始位置。
       this.selectionStart = { x: event.offsetX, y: event.offsetY }
+      // 選択終了位置をリセット。
+      this.selectionEnd = { x: event.offsetX, y: event.offsetY }
     },
 
     updateSelection (event) {
