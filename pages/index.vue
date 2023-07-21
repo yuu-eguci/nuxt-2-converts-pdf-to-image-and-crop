@@ -35,7 +35,17 @@
       </v-sheet>
 
       <div v-if="imgSrc">
-        <img :src="imgSrc">
+        <div ref="selectionOverlay" style="position: relative;">
+          <img
+            ref="uploadedImage"
+            :src="imgSrc"
+            @load="onImageUploaded"
+          >
+          <canvas
+            ref="overlayCanvas"
+            style="position: absolute; top: 0; left: 0;"
+          />
+        </div>
       </div>
     </v-col>
   </v-row>
@@ -57,14 +67,12 @@ export default {
     onDrop (event) {
       this.changeVSheetColor = false
       const files = event.dataTransfer.files
-      this.onFileChange(Array.from(files))
+      // NOTE: とりあえず1ファイルに対応。
+      this.onFileChange(files[0])
     },
 
     // NOTE: v-file-input の @change イベントはファイルを直接返します。
-    //       型は [File]
-    onFileChange (files) {
-      // NOTE: とりあえず1ファイルに対応。
-      const file = files[0]
+    onFileChange (file) {
       if (!file) {
         return
       }
@@ -74,7 +82,6 @@ export default {
         this.imgSrc = URL.createObjectURL(file)
         return
       }
-
       // "ワーカースクリプト" を設定。
       // ブラウザの Web Worker API を使って、処理をバックグラウンドで行うものらしい。
       // メインスレッドを妨害することを防ぐってことみたい。
@@ -114,6 +121,14 @@ export default {
         // eslint-disable-next-line no-console
         console.error('Error: ' + reason)
       })
+    },
+
+    onImageUploaded () {
+      // "canvas のサイズ = 画像のサイズ" にします。
+      const canvas = this.$refs.overlayCanvas
+      const image = this.$refs.uploadedImage
+      canvas.width = image.naturalWidth
+      canvas.height = image.naturalHeight
     }
   }
 }
