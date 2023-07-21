@@ -126,6 +126,9 @@ export default {
     },
 
     endSelection (index) {
+      if (!this.isSelecting) {
+        return
+      }
       // 選択終了。
       this.isSelecting = false
       // 選択範囲の左上と右下の点を取得。
