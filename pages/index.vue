@@ -60,6 +60,26 @@
 import { GlobalWorkerOptions, getDocument } from 'pdfjs-dist/build/pdf'
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.entry'
 
+const resizeImage = (image, callback) => {
+  const canvas = document.createElement('canvas')
+  const context = canvas.getContext('2d')
+
+  const imgElement = new Image()
+  imgElement.src = image
+  imgElement.onload = () => {
+    // リサイズ後のサイズを指定します。
+    const resizedWidth = 800
+    const resizedHeight = imgElement.height * (resizedWidth / imgElement.width)
+    canvas.width = resizedWidth
+    canvas.height = resizedHeight
+
+    // 画像を新しいキャンバスに描画します。
+    context.drawImage(imgElement, 0, 0, imgElement.width, imgElement.height, 0, 0, resizedWidth, resizedHeight)
+    // 新しいキャンバスの内容を Data URL として取得します。
+    callback(canvas.toDataURL())
+  }
+}
+
 export default {
   name: 'IndexPage',
   data () {
@@ -136,8 +156,11 @@ export default {
       }
 
       if (file.type.startsWith('image/')) {
-        // 画像ファイルの場合は、この先の PDF -> 画像化は不要。
-        this.imgSrc = URL.createObjectURL(file)
+        // 画像ファイルの場合は、PDF -> 画像化は不要。
+        const imgSrc = URL.createObjectURL(file)
+        resizeImage(imgSrc, (resizedImgSrc) => {
+          this.imgSrc = resizedImgSrc
+        })
         return
       }
       // "ワーカースクリプト" を設定。
@@ -171,7 +194,10 @@ export default {
             const renderTask = page.render(renderContext)
             renderTask.promise.then(() => {
               // キャンバスの内容を Data URL として取得。
-              this.imgSrc = canvas.toDataURL()
+              const imgSrc = canvas.toDataURL()
+              resizeImage(imgSrc, (resizedImgSrc) => {
+                this.imgSrc = resizedImgSrc
+              })
             })
           })
         }
