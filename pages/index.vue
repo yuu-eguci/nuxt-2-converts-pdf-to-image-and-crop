@@ -167,6 +167,9 @@ export default {
         return
       }
 
+      // 既存のアップロードファイルは削除しとく。
+      this.imgSrcs = []
+
       if (file.type.startsWith('image/')) {
         // 画像ファイルの場合は、PDF -> 画像化は不要。
         const imgSrc = URL.createObjectURL(file)
