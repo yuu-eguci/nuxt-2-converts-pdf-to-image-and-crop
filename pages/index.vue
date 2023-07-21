@@ -65,6 +65,12 @@ export default {
         return
       }
 
+      if (file.type.startsWith('image/')) {
+        // 画像ファイルの場合は、そのまま imgSrcs に追加。
+        this.imgSrcs.push(URL.createObjectURL(file))
+        return
+      }
+
       // "ワーカースクリプト" を設定。
       // ブラウザの Web Worker API を使って、処理をバックグラウンドで行うものらしい。
       // メインスレッドを妨害することを防ぐってことみたい。
