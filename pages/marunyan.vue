@@ -2,13 +2,18 @@
   <v-row>
     <v-col
       cols="8"
-      class="text-center"
     >
-      <img
-        src="/marunyan.png"
-        alt="Vuetify.js"
-        class="mb-5"
-      >
+      <div style="position: relative;">
+        <img
+          ref="marunyanImage"
+          src="/marunyan.png"
+          @load="onImageUploaded"
+        >
+        <canvas
+          ref="overlayCanvas"
+          style="position: absolute; top: 0; left: 0;"
+        />
+      </div>
     </v-col>
     <v-col
       cols="4"
@@ -70,6 +75,31 @@ export default {
   },
   mounted () {
     this.activityLogs.unshift('mounted が呼ばれたよ。')
+  },
+  methods: {
+    onImageUploaded () {
+      // "canvas のサイズ = 画像のサイズ" にします。
+      // NOTE: v-for の中の ref は配列になる。
+      //       ということで index で取得できます。
+      const canvas = this.$refs.overlayCanvas
+      const image = this.$refs.marunyanImage
+      canvas.width = image.naturalWidth
+      canvas.height = image.naturalHeight
+
+      // 矩形を描画
+      const ctx = canvas.getContext('2d')
+      for (const paragraph of marunyanParagraphs) {
+        ctx.beginPath()
+        ctx.moveTo(paragraph.leftTop.x, paragraph.leftTop.y)
+        ctx.lineTo(paragraph.rightTop.x, paragraph.rightTop.y)
+        ctx.lineTo(paragraph.rightBottom.x, paragraph.rightBottom.y)
+        ctx.lineTo(paragraph.leftBottom.x, paragraph.leftBottom.y)
+        ctx.closePath()
+        ctx.lineWidth = 3
+        ctx.strokeStyle = '#FF0000'
+        ctx.stroke()
+      }
+    }
   }
 }
 </script>
