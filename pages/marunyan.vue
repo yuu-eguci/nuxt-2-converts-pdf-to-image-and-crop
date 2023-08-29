@@ -10,8 +10,13 @@
           @load="onImageUploaded"
         >
         <canvas
-          ref="overlayCanvas"
+          ref="colorFillCanvas"
           style="position: absolute; top: 0; left: 0;"
+        />
+        <canvas
+          ref="rectangleCanvas"
+          style="position: absolute; top: 0; left: 0;"
+          @click="onClickCanvas"
         />
       </div>
     </v-col>
@@ -81,24 +86,55 @@ export default {
       // "canvas のサイズ = 画像のサイズ" にします。
       // NOTE: v-for の中の ref は配列になる。
       //       ということで index で取得できます。
-      const canvas = this.$refs.overlayCanvas
+      const rectangleCanvas = this.$refs.rectangleCanvas
+      const colorFillCanvas = this.$refs.colorFillCanvas
       const image = this.$refs.marunyanImage
-      canvas.width = image.naturalWidth
-      canvas.height = image.naturalHeight
+      rectangleCanvas.width = image.naturalWidth
+      rectangleCanvas.height = image.naturalHeight
+      colorFillCanvas.width = image.naturalWidth
+      colorFillCanvas.height = image.naturalHeight
 
       // 矩形を描画
-      const ctx = canvas.getContext('2d')
+      const ctx = rectangleCanvas.getContext('2d')
       for (const paragraph of marunyanParagraphs) {
+        const { text, leftTop, rightTop, rightBottom, leftBottom } = paragraph
         ctx.beginPath()
-        ctx.moveTo(paragraph.leftTop.x, paragraph.leftTop.y)
-        ctx.lineTo(paragraph.rightTop.x, paragraph.rightTop.y)
-        ctx.lineTo(paragraph.rightBottom.x, paragraph.rightBottom.y)
-        ctx.lineTo(paragraph.leftBottom.x, paragraph.leftBottom.y)
+        ctx.moveTo(leftTop.x, leftTop.y)
+        ctx.lineTo(rightTop.x, rightTop.y)
+        ctx.lineTo(rightBottom.x, rightBottom.y)
+        ctx.lineTo(leftBottom.x, leftBottom.y)
         ctx.closePath()
         ctx.lineWidth = 3
         ctx.strokeStyle = '#FF0000'
         ctx.stroke()
+        this.activityLogs.unshift(`${text} に矩形を描画したよ。`)
       }
+    },
+
+    onClickCanvas (event) {
+      const x = event.clientX
+      const y = event.clientY
+      const ctx = this.$refs.colorFillCanvas.getContext('2d')
+      for (const paragraph of marunyanParagraphs) {
+        const { text, leftTop, rightTop, leftBottom } = paragraph
+        if (
+          x >= leftTop.x && x <= rightTop.x &&
+          y >= leftTop.y && y <= leftBottom.y
+        ) {
+          // クリックされた矩形内に座標が含まれている場合
+          this.mainText = text
+          // 矩形の色を変更
+          ctx.fillStyle = 'rgba(0, 255, 0, 0.5)' // 色と透明度を設定
+          ctx.fillRect(leftTop.x, leftTop.y, rightTop.x - leftTop.x, leftBottom.y - leftTop.y) // 矩形を塗る
+          setTimeout(() => {
+            // すべての矩形の色をクリア（オプション）
+            ctx.clearRect(0, 0, this.$refs.colorFillCanvas.width, this.$refs.colorFillCanvas.height)
+          }, 1000)
+          this.activityLogs.unshift(`クリックした (${x}, ${y}) には ${text} があるよ。`)
+          return
+        }
+      }
+      this.activityLogs.unshift(`クリックした (${x}, ${y}) は矩形の外だよ。)`)
     }
   }
 }
