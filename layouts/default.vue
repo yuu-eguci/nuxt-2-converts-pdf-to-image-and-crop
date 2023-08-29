@@ -11,8 +11,23 @@
         </v-icon>
         {{ title }}
       </v-toolbar-title>
+
       <v-spacer />
+
+      <v-btn
+        text
+        to="/"
+      >
+        Index
+      </v-btn>
+      <v-btn
+        text
+        to="/marunyan"
+      >
+        Marunyan
+      </v-btn>
     </v-app-bar>
+
     <v-main>
       <v-container>
         <Nuxt />
