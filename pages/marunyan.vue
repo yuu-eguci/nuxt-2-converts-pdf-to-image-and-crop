@@ -37,11 +37,11 @@
           height="600"
           item-height="56"
         >
-          <template #default="{ item, index }">
+          <template #default="{ item }">
             <v-list-item :key="item.id">
               <v-list-item-content>
                 <v-list-item-title>
-                  {{ index }} {{ item }}
+                  {{ item }}
                 </v-list-item-title>
               </v-list-item-content>
             </v-list-item>
@@ -54,6 +54,8 @@
 </template>
 
 <script>
+import { marunyanParagraphs } from '~/utils/MarunyanUtils.js'
+
 export default {
   name: 'MarunyanPage',
   data () {
@@ -64,6 +66,7 @@ export default {
   },
   created () {
     this.activityLogs.unshift('created が呼ばれたよ。')
+    this.activityLogs.unshift('marunyanParagraphs をロードしたよ。')
   },
   mounted () {
     this.activityLogs.unshift('mounted が呼ばれたよ。')
