@@ -4,15 +4,23 @@
       cols="8"
     >
       <div style="position: relative;">
+        <!-- 画像。 -->
         <img
           ref="marunyanImage"
           src="/marunyan.png"
           @load="onImageUploaded"
         >
+        <!-- 色を塗るキャンバス。 -->
         <canvas
           ref="colorFillCanvas"
           style="position: absolute; top: 0; left: 0;"
         />
+        <!--
+          矩形を出すキャンバス。
+          NOTE: キャンバスを分けている。
+                同じキャンバスにしちゃうと、 "塗った色をリセット" するとき、
+                "矩形もリセット" されちゃうため。それを避けたい。
+        -->
         <canvas
           ref="rectangleCanvas"
           style="position: absolute; top: 0; left: 0;"
@@ -76,7 +84,6 @@ export default {
   },
   created () {
     this.activityLogs.unshift('created が呼ばれたよ。')
-    this.activityLogs.unshift('marunyanParagraphs をロードしたよ。')
   },
   mounted () {
     this.activityLogs.unshift('mounted が呼ばれたよ。')
@@ -112,8 +119,9 @@ export default {
     },
 
     onClickCanvas (event) {
-      const x = event.clientX
-      const y = event.clientY
+      const canvasRect = this.$refs.colorFillCanvas.getBoundingClientRect()
+      const x = event.clientX - canvasRect.left
+      const y = event.clientY - canvasRect.top
       const ctx = this.$refs.colorFillCanvas.getContext('2d')
       for (const paragraph of marunyanParagraphs) {
         const { text, leftTop, rightTop, leftBottom } = paragraph
