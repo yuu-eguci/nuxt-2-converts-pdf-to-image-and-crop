@@ -5,3 +5,7 @@
 ![](./docs/readme-drag-and-drop-pdf.png)
 
 ![](./docs/readme-rectangular-selection-and-crop-image.png)
+
+```bash
+yarn dev
+```
