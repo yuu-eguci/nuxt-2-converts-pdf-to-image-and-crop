@@ -142,7 +142,7 @@ export default {
           return
         }
       }
-      this.activityLogs.unshift(`クリックした (${x}, ${y}) は矩形の外だよ。)`)
+      this.activityLogs.unshift(`クリックした (${x}, ${y}) は矩形の外だよ。`)
     }
   }
 }
