@@ -7,7 +7,7 @@
         <!-- 画像。 -->
         <img
           ref="marunyanImage"
-          src="/marunyan.png"
+          :src="imgSrc"
           @load="onImageUploaded"
         >
         <!-- 色を塗るキャンバス。 -->
@@ -72,18 +72,24 @@
 </template>
 
 <script>
-import { marunyanParagraphs } from '~/utils/MarunyanUtils.js'
+import { getMarunyanParagraphs } from '~/utils/MarunyanUtils.js'
+
+const IMAGE_SOURCE_PATH = '/marunyan.png'
+const ANNOTATE_IMAGE_RESPONSE_JSON_PATH = '/annotate_image_response.json'
 
 export default {
   name: 'MarunyanPage',
   data () {
     return {
+      imgSrc: IMAGE_SOURCE_PATH,
+      marunyanParagraphs: [],
       activityLogs: [],
       mainText: ''
     }
   },
-  created () {
+  async created () {
     this.activityLogs.unshift('created が呼ばれたよ。')
+    this.marunyanParagraphs = await getMarunyanParagraphs(ANNOTATE_IMAGE_RESPONSE_JSON_PATH)
   },
   mounted () {
     this.activityLogs.unshift('mounted が呼ばれたよ。')
@@ -103,7 +109,7 @@ export default {
 
       // 矩形を描画
       const ctx = rectangleCanvas.getContext('2d')
-      for (const paragraph of marunyanParagraphs) {
+      for (const paragraph of this.marunyanParagraphs) {
         const { text, leftTop, rightTop, rightBottom, leftBottom } = paragraph
         ctx.beginPath()
         ctx.moveTo(leftTop.x, leftTop.y)
@@ -123,7 +129,7 @@ export default {
       const x = event.clientX - canvasRect.left
       const y = event.clientY - canvasRect.top
       const ctx = this.$refs.colorFillCanvas.getContext('2d')
-      for (const paragraph of marunyanParagraphs) {
+      for (const paragraph of this.marunyanParagraphs) {
         const { text, leftTop, rightTop, leftBottom } = paragraph
         if (
           x >= leftTop.x && x <= rightTop.x &&
