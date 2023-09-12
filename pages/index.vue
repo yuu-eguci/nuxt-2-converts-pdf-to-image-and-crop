@@ -158,7 +158,7 @@ export default {
       this.changeVSheetColor = false
       const files = event.dataTransfer.files
       // NOTE: とりあえず1ファイルに対応。
-      this.onFileChange(files[0])
+      this.$debug(files)
     },
 
     // NOTE: v-file-input の @change イベントはファイルを直接返します。
