@@ -82,7 +82,10 @@ const resizeImage = (image, callback) => {
     // 画像を新しいキャンバスに描画します。
     context.drawImage(imgElement, 0, 0, imgElement.width, imgElement.height, 0, 0, resizedWidth, resizedHeight)
     // 新しいキャンバスの内容を Data URL として取得します。
-    callback(canvas.toDataURL())
+    canvas.toBlob((blob) => {
+      const blobURL = URL.createObjectURL(blob)
+      callback(blobURL)
+    })
   }
 }
 
@@ -231,9 +234,11 @@ export default {
           yOffset += canvas.height
         }
 
-        const imgSrc = finalCanvas.toDataURL()
-        resizeImage(imgSrc, (resizedImgSrc) => {
-          this.imgSrcs.push(resizedImgSrc)
+        finalCanvas.toBlob((blob) => {
+          const imgSrc = URL.createObjectURL(blob)
+          resizeImage(imgSrc, (resizedImgSrc) => {
+            this.imgSrcs.push(resizedImgSrc)
+          })
         })
       }).catch(function (reason) {
         // eslint-disable-next-line no-console
