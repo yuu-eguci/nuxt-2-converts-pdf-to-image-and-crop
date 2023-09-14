@@ -159,6 +159,7 @@ export default {
       const files = event.dataTransfer.files
       // NOTE: とりあえず1ファイルに対応。
       this.$debug(files)
+      this.onFileChange(files[0])
     },
 
     // NOTE: v-file-input の @change イベントはファイルを直接返します。
