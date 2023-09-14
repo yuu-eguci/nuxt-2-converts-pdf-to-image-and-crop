@@ -166,7 +166,7 @@ export default {
     },
 
     // NOTE: v-file-input の @change イベントはファイルを直接返します。
-    onFileChange (file) {
+    async onFileChange (file) {
       if (!file) {
         return
       }
@@ -190,8 +190,10 @@ export default {
       // NOTE: 選択された PDF を読み込むタスクを用意している。
       const loadingTask = getDocument(URL.createObjectURL(file))
 
-      // "PDF ファイル読み込みの処理が終わったら、" の意味。
-      loadingTask.promise.then(async (pdf) => {
+      try {
+        // "PDF ファイル読み込みの処理が終わったら、" の意味。
+        const pdf = await loadingTask.promise
+
         let totalHeight = 0
         let maxWidth = 0
 
@@ -240,10 +242,10 @@ export default {
             this.imgSrcs.push(resizedImgSrc)
           })
         })
-      }).catch(function (reason) {
+      } catch (reason) {
         // eslint-disable-next-line no-console
-        console.error('Error: ' + reason)
-      })
+        console.error(`Error: ${reason}`)
+      }
     },
 
     onImageUploaded (index) {
