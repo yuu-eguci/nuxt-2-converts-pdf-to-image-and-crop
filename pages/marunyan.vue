@@ -90,6 +90,7 @@ export default {
   async created () {
     this.activityLogs.unshift('created が呼ばれたよ。')
     this.marunyanParagraphs = await getMarunyanParagraphs(ANNOTATE_IMAGE_RESPONSE_JSON_PATH)
+    this.$debug(this.marunyanParagraphs)
   },
   mounted () {
     this.activityLogs.unshift('mounted が呼ばれたよ。')
