@@ -66,6 +66,83 @@
 import { GlobalWorkerOptions, getDocument } from 'pdfjs-dist/build/pdf'
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.entry'
 
+/**
+ * PDF ファイルの各ページを 1 つの画像に結合して Blob URL 形式で返す。
+ * WARN: この関数はブラウザ環境に依存しており、ユニットテストを書けていない。
+ * @param {string} pdfFileURL - PDF ファイルの URL
+ * @returns {Promise<string>} 結合された画像の Blob URL 文字列
+ */
+async function pdfToBlobURLImage (pdfFileURL) {
+  // "ワーカースクリプト" を設定。
+  GlobalWorkerOptions.workerSrc = pdfjsWorker
+
+  // NOTE: 選択された PDF を読み込むタスクを用意している。
+  const loadingTask = getDocument(pdfFileURL)
+
+  // "PDF ファイル読み込みの処理が終わったら、" の意味。
+  const pdf = await loadingTask.promise
+
+  let totalHeight = 0
+  let maxWidth = 0
+
+  const canvases = []
+
+  for (let i = 1; i <= pdf.numPages; i++) {
+    // PDF 各ページを取得。
+    const page = await pdf.getPage(i)
+
+    // Viewport を作る。
+    const viewport = page.getViewport({ scale: 1.0 })
+
+    totalHeight += viewport.height
+    maxWidth = Math.max(maxWidth, viewport.width)
+
+    // キャンバスと、対応する context を作る。
+    // Context はキャンバス上に描画するためのメソッドとプロパティを持ったオブジェクト。
+    const canvas = document.createElement('canvas')
+    canvas.height = viewport.height
+    canvas.width = viewport.width
+    const canvasContext = canvas.getContext('2d')
+
+    // ページの描画タスクを開始。
+    await page.render({
+      canvasContext,
+      viewport
+    }).promise
+
+    canvases.push(canvas)
+
+    canvas.toBlob((blob) => {
+      if (blob) {
+        console.info(URL.createObjectURL(blob))
+      }
+    })
+  }
+
+  const finalCanvas = document.createElement('canvas')
+  finalCanvas.height = totalHeight
+  finalCanvas.width = maxWidth
+  const finalContext = finalCanvas.getContext('2d')
+
+  let yOffset = 0
+  for (const canvas of canvases) {
+    finalContext.drawImage(canvas, 0, yOffset)
+    yOffset += canvas.height
+  }
+
+  return new Promise((resolve, reject) => {
+    finalCanvas.toBlob((blob) => {
+      if (blob) {
+        console.info('せいこう')
+        resolve(URL.createObjectURL(blob))
+      } else {
+        console.error('しっぱい')
+        reject(new Error('Failed to create blob'))
+      }
+    })
+  })
+}
+
 const resizeImage = (image, callback) => {
   const canvas = document.createElement('canvas')
   const context = canvas.getContext('2d')
@@ -182,70 +259,12 @@ export default {
         })
         return
       }
-      // "ワーカースクリプト" を設定。
-      // ブラウザの Web Worker API を使って、処理をバックグラウンドで行うものらしい。
-      // メインスレッドを妨害することを防ぐってことみたい。
-      GlobalWorkerOptions.workerSrc = pdfjsWorker
 
-      // NOTE: 選択された PDF を読み込むタスクを用意している。
-      const loadingTask = getDocument(URL.createObjectURL(file))
-
-      try {
-        // "PDF ファイル読み込みの処理が終わったら、" の意味。
-        const pdf = await loadingTask.promise
-
-        let totalHeight = 0
-        let maxWidth = 0
-
-        const canvases = []
-
-        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-          // PDF 各ページを取得。
-          const page = await pdf.getPage(pageNum)
-          // Viewport を作る。
-          // Viewport ってのは……描画する領域のことらしい……
-          const viewport = page.getViewport({ scale: 1.0 })
-
-          totalHeight += viewport.height
-          maxWidth = Math.max(maxWidth, viewport.width)
-
-          // キャンバスに対応する context を作る。
-          // Context はキャンバス上に描画するためのメソッドとプロパティを持ったオブジェクト。
-          const canvas = document.createElement('canvas')
-          const context = canvas.getContext('2d')
-          canvas.height = viewport.height
-          canvas.width = viewport.width
-
-          // ページの描画タスクを開始。
-          await page.render({
-            canvasContext: context,
-            viewport
-          }).promise
-
-          canvases.push(canvas)
-        }
-
-        const finalCanvas = document.createElement('canvas')
-        finalCanvas.height = totalHeight
-        finalCanvas.width = maxWidth
-        const finalContext = finalCanvas.getContext('2d')
-
-        let yOffset = 0
-        for (const canvas of canvases) {
-          finalContext.drawImage(canvas, 0, yOffset)
-          yOffset += canvas.height
-        }
-
-        finalCanvas.toBlob((blob) => {
-          const imgSrc = URL.createObjectURL(blob)
-          resizeImage(imgSrc, (resizedImgSrc) => {
-            this.imgSrcs.push(resizedImgSrc)
-          })
-        })
-      } catch (reason) {
-        // eslint-disable-next-line no-console
-        console.error(`Error: ${reason}`)
-      }
+      const pdfBlobURL = URL.createObjectURL(file)
+      const imageBlobURLBeforeResize = await pdfToBlobURLImage(pdfBlobURL)
+      resizeImage(imageBlobURLBeforeResize, (resizedImgSrc) => {
+        this.imgSrcs.push(resizedImgSrc)
+      })
     },
 
     onImageUploaded (index) {
