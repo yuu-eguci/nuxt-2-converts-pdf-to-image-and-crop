@@ -188,35 +188,53 @@ export default {
       const loadingTask = getDocument(URL.createObjectURL(file))
 
       // "PDF ファイル読み込みの処理が終わったら、" の意味。
-      loadingTask.promise.then((pdf) => {
+      loadingTask.promise.then(async (pdf) => {
+        let totalHeight = 0
+        let maxWidth = 0
+
+        const canvases = []
+
         for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
           // PDF 各ページを取得。
-          pdf.getPage(pageNum).then((page) => {
-            // Viewport を作る。
-            // Viewport ってのは……描画する領域のことらしい……
-            const viewport = page.getViewport({ scale: 1.0 })
-            // キャンバスに対応する context を作る。
-            // Context はキャンバス上に描画するためのメソッドとプロパティを持ったオブジェクト。
-            const canvas = document.createElement('canvas')
-            const context = canvas.getContext('2d')
-            canvas.height = viewport.height
-            canvas.width = viewport.width
+          const page = await pdf.getPage(pageNum)
+          // Viewport を作る。
+          // Viewport ってのは……描画する領域のことらしい……
+          const viewport = page.getViewport({ scale: 1.0 })
 
-            const renderContext = {
-              canvasContext: context,
-              viewport
-            }
-            // ページの描画タスクを開始。
-            const renderTask = page.render(renderContext)
-            renderTask.promise.then(() => {
-              // キャンバスの内容を Data URL として取得。
-              const imgSrc = canvas.toDataURL()
-              resizeImage(imgSrc, (resizedImgSrc) => {
-                this.imgSrcs.push(resizedImgSrc)
-              })
-            })
-          })
+          totalHeight += viewport.height
+          maxWidth = Math.max(maxWidth, viewport.width)
+
+          // キャンバスに対応する context を作る。
+          // Context はキャンバス上に描画するためのメソッドとプロパティを持ったオブジェクト。
+          const canvas = document.createElement('canvas')
+          const context = canvas.getContext('2d')
+          canvas.height = viewport.height
+          canvas.width = viewport.width
+
+          // ページの描画タスクを開始。
+          await page.render({
+            canvasContext: context,
+            viewport
+          }).promise
+
+          canvases.push(canvas)
         }
+
+        const finalCanvas = document.createElement('canvas')
+        finalCanvas.height = totalHeight
+        finalCanvas.width = maxWidth
+        const finalContext = finalCanvas.getContext('2d')
+
+        let yOffset = 0
+        for (const canvas of canvases) {
+          finalContext.drawImage(canvas, 0, yOffset)
+          yOffset += canvas.height
+        }
+
+        const imgSrc = finalCanvas.toDataURL()
+        resizeImage(imgSrc, (resizedImgSrc) => {
+          this.imgSrcs.push(resizedImgSrc)
+        })
       }).catch(function (reason) {
         // eslint-disable-next-line no-console
         console.error('Error: ' + reason)
