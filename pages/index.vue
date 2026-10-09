@@ -56,14 +56,13 @@
         <canvas
           ref="overlayCanvas"
           class="overlay-canvas"
-          style="position: absolute; top: 0; left: 0;"
-          @mousedown="startSelection"
-          @mousemove="updateSelection($event, index)"
-          @mouseup="endSelection(index)"
-          @mouseleave="endSelection(index)"
+          @pointerdown="startSelection($event, index)"
+          @pointermove="updateSelection($event, index)"
+          @pointerup="endSelection($event, index)"
+          @pointercancel="cancelSelection(index)"
         />
       </div>
-      <img ref="croppedImage" class="cropped-image" alt="Cropped content">
+      <img v-if="croppedSrc" class="cropped-image" :src="croppedSrc" alt="Cropped content">
     </v-col>
   </v-row>
 </template>
@@ -73,6 +72,7 @@ import { GlobalWorkerOptions, getDocument } from 'pdfjs-dist/build/pdf'
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.entry'
 import { buildPdfLoadParams } from '@/utils/pdfLoadParams'
 import { classifyFile, loadErrorMessage } from '@/utils/fileKind'
+import { isTooSmall, normalizeRect, toCanvasPoint } from '@/utils/cropGeometry'
 
 /**
  * PDF ファイルの各ページを 1 つの画像に結合して Blob URL 形式で返す。
@@ -181,6 +181,7 @@ export default {
     return {
       imgSrcs: [],
       errorMessage: '',
+      croppedSrc: '',
       changeVSheetColor: false,
       isSelecting: false,
       selectionStart: { x: 0, y: 0 },
@@ -188,60 +189,63 @@ export default {
     }
   },
   methods: {
-    startSelection (event) {
-      // 矩形選択を開始した。
+    startSelection (event, index) {
+      // 主ボタン (タッチ・ペンを含む) 以外では選択しません。
+      if (event.button !== 0) {
+        return
+      }
+      // ポインタがキャンバスの外へ出ても、離すまでイベントを受け取ります。
+      event.target.setPointerCapture(event.pointerId)
       this.isSelecting = true
-      // 選択開始位置。
-      this.selectionStart = { x: event.offsetX, y: event.offsetY }
-      // 選択終了位置をリセット。
-      this.selectionEnd = { x: event.offsetX, y: event.offsetY }
+      this.selectionStart = this.toPoint(event, index)
+      this.selectionEnd = this.selectionStart
     },
 
     updateSelection (event, index) {
-      // 選択が始まっていない?
       if (!this.isSelecting) {
         return
       }
-      // いまここ。
-      this.selectionEnd = { x: event.offsetX, y: event.offsetY }
-      // Canvas 取得。
+      this.selectionEnd = this.toPoint(event, index)
       const canvas = this.$refs.overlayCanvas[index]
       const ctx = canvas.getContext('2d')
-      // 前回の描画を消す。
+      // 前回の描画を消して、選択範囲の矩形を描画。
       ctx.clearRect(0, 0, canvas.width, canvas.height)
-      // 選択範囲の矩形を描画。
-      const width = this.selectionEnd.x - this.selectionStart.x
-      const height = this.selectionEnd.y - this.selectionStart.y
-      ctx.strokeRect(this.selectionStart.x, this.selectionStart.y, width, height)
+      const { x, y, width, height } = normalizeRect(this.selectionStart, this.selectionEnd)
+      ctx.strokeRect(x, y, width, height)
     },
 
-    endSelection (index) {
+    endSelection (event, index) {
       if (!this.isSelecting) {
         return
       }
-      // 選択終了。
-      this.isSelecting = false
-      // 選択範囲の左上と右下の点を取得。
-      const startX = Math.min(this.selectionStart.x, this.selectionEnd.x)
-      const startY = Math.min(this.selectionStart.y, this.selectionEnd.y)
-      const endX = Math.max(this.selectionStart.x, this.selectionEnd.x)
-      const endY = Math.max(this.selectionStart.y, this.selectionEnd.y)
-      // 選択範囲の幅と高さを計算。
-      const width = endX - startX
-      const height = endY - startY
+      this.selectionEnd = this.toPoint(event, index)
+      this.cancelSelection(index)
+      const { x, y, width, height } = normalizeRect(this.selectionStart, this.selectionEnd)
+      // クリックだけのときは、前の切り抜き結果を残します。
+      if (isTooSmall({ width, height })) {
+        return
+      }
       // 選択範囲の画像を切り出す。
       const canvas = document.createElement('canvas')
       canvas.width = width
       canvas.height = height
-      const ctx = canvas.getContext('2d')
-      ctx.drawImage(
+      canvas.getContext('2d').drawImage(
         this.$refs.uploadedImage[index],
-        startX, startY, width, height,
+        x, y, width, height,
         0, 0, width, height
       )
-      // Canvas を data URL へ変換。
-      // NOTE: croppedImage は v-for の外だよ。 index で取得するヤツじゃない。
-      this.$refs.croppedImage.src = canvas.toDataURL()
+      this.croppedSrc = canvas.toDataURL()
+    },
+
+    cancelSelection (index) {
+      this.isSelecting = false
+      const canvas = this.$refs.overlayCanvas[index]
+      canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height)
+    },
+
+    toPoint (event, index) {
+      const canvas = this.$refs.overlayCanvas[index]
+      return toCanvasPoint(event, canvas, canvas.getBoundingClientRect())
     },
 
     onDrop (event) {
@@ -257,6 +261,8 @@ export default {
       if (!file) {
         return
       }
+      // 同じファイルを選び直しても change が届くように、選択状態を空にします。
+      this.$refs.fileInput.$refs.input.value = ''
 
       const kind = classifyFile(file)
       if (kind === 'unsupported') {
@@ -265,8 +271,9 @@ export default {
         return
       }
 
-      // 既存のアップロードファイルは削除しとく。
+      // 既存のアップロードファイルと切り抜き結果は削除しとく。
       this.imgSrcs = []
+      this.croppedSrc = ''
       this.errorMessage = ''
 
       try {
@@ -296,5 +303,13 @@ export default {
 <style scoped>
 .drag-drop-area {
   transition: background-color 0.5s ease;
+}
+
+.overlay-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  /* タッチでのドラッグをスクロールではなく選択に使います。 */
+  touch-action: none;
 }
 </style>

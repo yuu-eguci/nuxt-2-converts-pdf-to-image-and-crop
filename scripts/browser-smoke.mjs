@@ -132,6 +132,55 @@ const scenarios = {
     expect(crop && crop.width === 50 && crop.height === 30 && same(crop.center, RED), `切り抜き結果が不正です: ${JSON.stringify(crop)}`)
   },
 
+  async 'crop-any-direction' (page) {
+    await upload(page, 'two-pages.pdf')
+    await readImage(page)
+    // 上半分が赤、下半分が青です。どの向きにドラッグしても同じ矩形になります。
+    const drags = { downRight: [[10, 10], [60, 40]], upLeft: [[60, 40], [10, 10]], downLeft: [[60, 260], [10, 290]], upRight: [[10, 290], [60, 260]] }
+    for (const [direction, [from, to]] of Object.entries(drags)) {
+      const crop = await dragCrop(page, from, to)
+      const color = from[1] < 250 ? RED : BLUE
+      expect(crop && crop.width === 50 && crop.height === 30 && same(crop.center, color), `${direction} の切り抜き結果が不正です: ${JSON.stringify(crop)}`)
+    }
+  },
+
+  async 'no-crop-before-selection' (page) {
+    expect(await page.$('img.cropped-image') === null, '切り抜く前から切り抜き画像の枠が出ています')
+  },
+
+  async 'click-keeps-previous-crop' (page) {
+    await upload(page, 'two-pages.pdf')
+    await readImage(page)
+    const crop = await dragCrop(page, [10, 10], [60, 40])
+    const afterClick = await dragCrop(page, [100, 100], [100, 100])
+    expect(afterClick && afterClick.src === crop.src, `クリックだけで切り抜き画像が変わりました: ${JSON.stringify(afterClick)}`)
+  },
+
+  async 'drag-past-edge-clamps' (page) {
+    await upload(page, 'two-pages.pdf')
+    await readImage(page)
+    // 右端と上端の外までドラッグし、外でボタンを離します。
+    const crop = await dragCrop(page, [450, 50], [600, -100])
+    expect(crop && crop.width === 50 && crop.height === 50 && same(crop.center, RED), `画像の端までの切り抜きになっていません: ${JSON.stringify(crop)}`)
+  },
+
+  async 'new-upload-clears-crop' (page) {
+    await upload(page, 'two-pages.pdf')
+    const first = await readImage(page)
+    await dragCrop(page, [10, 10], [60, 40])
+    await drop(page, 'two-pages.pdf', 'application/pdf')
+    await readImage(page, first.src)
+    expect(await page.$('img.cropped-image') === null, '別のファイルを読んだあとも前の切り抜き画像が残っています')
+  },
+
+  async 'reselect-same-file' (page) {
+    await upload(page, 'two-pages.pdf')
+    const first = await readImage(page)
+    await dragCrop(page, [10, 10], [60, 40])
+    await upload(page, 'two-pages.pdf')
+    await readImage(page, first.src)
+  },
+
   async 'broken-pdf-shows-error' (page) {
     await upload(page, 'broken.pdf')
     await page.waitForSelector('[role=alert]', { timeout: 30000 })
