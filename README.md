@@ -17,6 +17,7 @@ docker compose up --build
 
 `http://localhost:3000` を開いて PDF を選ぶか、ドラッグ&ドロップ。
 全ページが縦に並んだ画像になる。ドラッグで範囲を選ぶと、切り抜いた画像が下に出る。
+PDF と画像以外のファイルや、読めないファイルを渡すとエラーメッセージが出る。
 
 lint とテストも Docker でどうぞ。
 
@@ -33,7 +34,7 @@ yarn install --frozen-lockfile --ignore-engines
 CHROME_PATH="/path/to/chrome" yarn smoke:browser
 ```
 
-赤と青の2ページ PDF を作って、画像化と切り抜きを確認する。成功すると `OK` が出る。
+テスト用の PDF などをその場で作り、画像化・切り抜き・エラー表示をシナリオごとに確認する。全部通ると `OK` が出る。
 
 pdfjs の既知の脆弱性 (CVE-2024-4367) には `isEvalSupported: false` の回避設定を入れてある。
 Nuxt 2・Vue 2・pdfjs 2 は古いままなので、新しい版への移行はまだ課題。

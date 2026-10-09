@@ -34,6 +34,10 @@
         />
       </v-sheet>
 
+      <v-alert v-if="errorMessage" type="error" class="mt-4">
+        {{ errorMessage }}
+      </v-alert>
+
       <div
         v-for="(imgSrc, index) in imgSrcs"
         :key="index"
@@ -45,11 +49,13 @@
         -->
         <img
           ref="uploadedImage"
+          class="uploaded-image"
           :src="imgSrc"
           @load="onImageUploaded(index)"
         >
         <canvas
           ref="overlayCanvas"
+          class="overlay-canvas"
           style="position: absolute; top: 0; left: 0;"
           @mousedown="startSelection"
           @mousemove="updateSelection($event, index)"
@@ -57,7 +63,7 @@
           @mouseleave="endSelection(index)"
         />
       </div>
-      <img ref="croppedImage" alt="Cropped content">
+      <img ref="croppedImage" class="cropped-image" alt="Cropped content">
     </v-col>
   </v-row>
 </template>
@@ -66,6 +72,7 @@
 import { GlobalWorkerOptions, getDocument } from 'pdfjs-dist/build/pdf'
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.entry'
 import { buildPdfLoadParams } from '@/utils/pdfLoadParams'
+import { classifyFile, loadErrorMessage } from '@/utils/fileKind'
 
 /**
  * PDF ファイルの各ページを 1 つの画像に結合して Blob URL 形式で返す。
@@ -136,11 +143,17 @@ async function pdfToBlobURLImage (pdfFileURL) {
   })
 }
 
-const resizeImage = (image, callback) => {
+/**
+ * 画像を幅 500px に縮小し、 Blob URL 形式で返します。
+ * @param {string} image - 画像の URL
+ * @returns {Promise<string>} 縮小した画像の Blob URL 文字列
+ */
+const resizeImage = image => new Promise((resolve, reject) => {
   const canvas = document.createElement('canvas')
   const context = canvas.getContext('2d')
 
   const imgElement = new Image()
+  imgElement.onerror = () => reject(new Error('Failed to load image'))
   imgElement.src = image
   imgElement.onload = () => {
     // リサイズ後のサイズを指定します。
@@ -153,17 +166,21 @@ const resizeImage = (image, callback) => {
     context.drawImage(imgElement, 0, 0, imgElement.width, imgElement.height, 0, 0, resizedWidth, resizedHeight)
     // 新しいキャンバスの内容を Data URL として取得します。
     canvas.toBlob((blob) => {
-      const blobURL = URL.createObjectURL(blob)
-      callback(blobURL)
+      if (blob) {
+        resolve(URL.createObjectURL(blob))
+      } else {
+        reject(new Error('Failed to create blob'))
+      }
     })
   }
-}
+})
 
 export default {
   name: 'IndexPage',
   data () {
     return {
       imgSrcs: [],
+      errorMessage: '',
       changeVSheetColor: false,
       isSelecting: false,
       selectionStart: { x: 0, y: 0 },
@@ -241,23 +258,26 @@ export default {
         return
       }
 
-      // 既存のアップロードファイルは削除しとく。
-      this.imgSrcs = []
-
-      if (file.type.startsWith('image/')) {
-        // 画像ファイルの場合は、PDF -> 画像化は不要。
-        const imgSrc = URL.createObjectURL(file)
-        resizeImage(imgSrc, (resizedImgSrc) => {
-          this.imgSrcs.push(resizedImgSrc)
-        })
+      const kind = classifyFile(file)
+      if (kind === 'unsupported') {
+        // 表示中の画像はそのまま残します。
+        this.errorMessage = loadErrorMessage(kind)
         return
       }
 
-      const pdfBlobURL = URL.createObjectURL(file)
-      const imageBlobURLBeforeResize = await pdfToBlobURLImage(pdfBlobURL)
-      resizeImage(imageBlobURLBeforeResize, (resizedImgSrc) => {
-        this.imgSrcs.push(resizedImgSrc)
-      })
+      // 既存のアップロードファイルは削除しとく。
+      this.imgSrcs = []
+      this.errorMessage = ''
+
+      try {
+        // 画像ファイルの場合は、PDF -> 画像化は不要。
+        const imageBlobURLBeforeResize = kind === 'image'
+          ? URL.createObjectURL(file)
+          : await pdfToBlobURLImage(URL.createObjectURL(file))
+        this.imgSrcs.push(await resizeImage(imageBlobURLBeforeResize))
+      } catch (error) {
+        this.errorMessage = loadErrorMessage(kind, error)
+      }
     },
 
     onImageUploaded (index) {
