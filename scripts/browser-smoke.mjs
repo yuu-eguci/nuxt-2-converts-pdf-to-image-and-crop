@@ -9,6 +9,8 @@ import puppeteer from 'puppeteer-core'
 const RED = [255, 0, 0, 255]
 const GREEN = [0, 255, 0, 255]
 const BLUE = [0, 0, 255, 255]
+const WHITE = [255, 255, 255, 255]
+const A4 = { width: 595, height: 842 }
 
 /**
  * 単色で塗りつぶしたページを並べた PDF を生成します。
@@ -42,6 +44,8 @@ function buildPdf (pages) {
 const dir = mkdtempSync(join(tmpdir(), 'smoke-'))
 const fixtures = {
   'two-pages.pdf': buildPdf([{ width: 200, height: 100, color: RED }, { width: 200, height: 100, color: BLUE }]),
+  'mixed-widths.pdf': buildPdf([{ width: 100, height: 100, color: RED }, { width: 400, height: 100, color: BLUE }]),
+  'a4-100-pages.pdf': buildPdf(Array.from({ length: 100 }, (_, i) => ({ ...A4, color: [RED, GREEN, BLUE][i % 3] }))),
   'broken.pdf': 'this is not a pdf\n',
   'note.txt': 'plain text\n',
   'broken.png': 'this is not a png\n'
@@ -130,6 +134,31 @@ const scenarios = {
     expect(same(image.at[0], RED) && same(image.at[1], BLUE), `ページの順序か描画が不正です: ${JSON.stringify(image.at)}`)
     const crop = await dragCrop(page, [10, 10], [60, 40])
     expect(crop && crop.width === 50 && crop.height === 30 && same(crop.center, RED), `切り抜き結果が不正です: ${JSON.stringify(crop)}`)
+  },
+
+  async 'mixed-widths-white-background' (page) {
+    await upload(page, 'mixed-widths.pdf')
+    const image = await readImage(page)
+    // 1 ページ目 (幅の狭い赤) の右側は、透明ではなく白で埋まります。
+    const right = await page.evaluate(() => {
+      const img = document.querySelector('img.uploaded-image')
+      const canvas = document.createElement('canvas')
+      canvas.width = img.naturalWidth
+      canvas.height = img.naturalHeight
+      const context = canvas.getContext('2d')
+      context.drawImage(img, 0, 0)
+      return Array.from(context.getImageData(Math.floor(canvas.width * 0.75), Math.floor(canvas.height * 0.25), 1, 1).data)
+    })
+    expect(image.width === 500 && image.height === 250, `連結画像のサイズが不正です: ${image.width}x${image.height}`)
+    expect(same(image.at[1], BLUE) && same(right, WHITE), `幅の狭いページの横が白ではありません: ${JSON.stringify(right)}`)
+  },
+
+  async 'long-pdf-fits-canvas-limit' (page) {
+    await upload(page, 'a4-100-pages.pdf')
+    const image = await readImage(page)
+    expect(image.height <= 32767, `ブラウザのキャンバス上限を超えています: ${image.width}x${image.height}`)
+    expect(same(image.at[0], RED) || same(image.at[0], GREEN) || same(image.at[0], BLUE), `ページが描画されていません: ${JSON.stringify(image.at)}`)
+    expect(await alertText(page) === '', 'エラーが表示されました')
   },
 
   async 'crop-any-direction' (page) {

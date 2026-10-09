@@ -73,10 +73,16 @@ import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.entry'
 import { buildPdfLoadParams } from '@/utils/pdfLoadParams'
 import { classifyFile, loadErrorMessage } from '@/utils/fileKind'
 import { isTooSmall, normalizeRect, toCanvasPoint } from '@/utils/cropGeometry'
+import { computeStackLayout } from '@/utils/pdfLayout'
 
 /**
- * PDF ファイルの各ページを 1 つの画像に結合して Blob URL 形式で返す。
- * WARN: この関数はブラウザ環境に依存しており、ユニットテストを書けていない。
+ * 表示する画像の幅 (px) です。
+ */
+const IMAGE_WIDTH = 500
+
+/**
+ * PDF ファイルの各ページを縦に並べた 1 枚の画像にして Blob URL 形式で返す。
+ * 各ページは最初から表示サイズで描画します。
  * @param {string} pdfFileURL - PDF ファイルの URL
  * @returns {Promise<string>} 結合された画像の Blob URL 文字列
  */
@@ -84,52 +90,30 @@ async function pdfToBlobURLImage (pdfFileURL) {
   // "ワーカースクリプト" を設定。
   GlobalWorkerOptions.workerSrc = pdfjsWorker
 
-  // NOTE: 選択された PDF を読み込むタスクを用意している。
-  const loadingTask = getDocument(buildPdfLoadParams(pdfFileURL))
-
-  // "PDF ファイル読み込みの処理が終わったら、" の意味。
-  const pdf = await loadingTask.promise
-
-  let totalHeight = 0
-  let maxWidth = 0
-
-  const canvases = []
-
+  const pdf = await getDocument(buildPdfLoadParams(pdfFileURL)).promise
+  const pages = []
   for (let i = 1; i <= pdf.numPages; i++) {
-    // PDF 各ページを取得。
-    const page = await pdf.getPage(i)
-
-    // Viewport を作る。
-    const viewport = page.getViewport({ scale: 1.0 })
-
-    totalHeight += viewport.height
-    maxWidth = Math.max(maxWidth, viewport.width)
-
-    // キャンバスと、対応する context を作る。
-    // Context はキャンバス上に描画するためのメソッドとプロパティを持ったオブジェクト。
-    const canvas = document.createElement('canvas')
-    canvas.height = viewport.height
-    canvas.width = viewport.width
-    const canvasContext = canvas.getContext('2d')
-
-    // ページの描画タスクを開始。
-    await page.render({
-      canvasContext,
-      viewport
-    }).promise
-
-    canvases.push(canvas)
+    pages.push(await pdf.getPage(i))
   }
+  const layout = computeStackLayout(pages.map(page => page.getViewport({ scale: 1 })), IMAGE_WIDTH)
 
   const finalCanvas = document.createElement('canvas')
-  finalCanvas.height = totalHeight
-  finalCanvas.width = maxWidth
+  finalCanvas.width = layout.width
+  finalCanvas.height = layout.height
   const finalContext = finalCanvas.getContext('2d')
+  // 幅の狭いページの横が透明にならないよう、白で塗っておきます。
+  finalContext.fillStyle = 'white'
+  finalContext.fillRect(0, 0, layout.width, layout.height)
 
-  let yOffset = 0
-  for (const canvas of canvases) {
-    finalContext.drawImage(canvas, 0, yOffset)
-    yOffset += canvas.height
+  for (const [i, page] of pages.entries()) {
+    const viewport = page.getViewport({ scale: layout.scale })
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.floor(viewport.width)
+    canvas.height = Math.floor(viewport.height)
+    await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise
+    finalContext.drawImage(canvas, 0, layout.offsets[i])
+    // ページごとのキャンバスのメモリをすぐ手放します。
+    canvas.width = 0
   }
 
   return new Promise((resolve, reject) => {
@@ -144,7 +128,7 @@ async function pdfToBlobURLImage (pdfFileURL) {
 }
 
 /**
- * 画像を幅 500px に縮小し、 Blob URL 形式で返します。
+ * 画像を幅 IMAGE_WIDTH に合わせて拡大縮小し、 Blob URL 形式で返します。
  * @param {string} image - 画像の URL
  * @returns {Promise<string>} 縮小した画像の Blob URL 文字列
  */
@@ -157,7 +141,7 @@ const resizeImage = image => new Promise((resolve, reject) => {
   imgElement.src = image
   imgElement.onload = () => {
     // リサイズ後のサイズを指定します。
-    const resizedWidth = 500
+    const resizedWidth = IMAGE_WIDTH
     const resizedHeight = imgElement.height * (resizedWidth / imgElement.width)
     canvas.width = resizedWidth
     canvas.height = resizedHeight
@@ -277,11 +261,10 @@ export default {
       this.errorMessage = ''
 
       try {
-        // 画像ファイルの場合は、PDF -> 画像化は不要。
-        const imageBlobURLBeforeResize = kind === 'image'
-          ? URL.createObjectURL(file)
+        const imgSrc = kind === 'image'
+          ? await resizeImage(URL.createObjectURL(file))
           : await pdfToBlobURLImage(URL.createObjectURL(file))
-        this.imgSrcs.push(await resizeImage(imageBlobURLBeforeResize))
+        this.imgSrcs.push(imgSrc)
       } catch (error) {
         this.errorMessage = loadErrorMessage(kind, error)
       }
