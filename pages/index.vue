@@ -112,12 +112,6 @@ async function pdfToBlobURLImage (pdfFileURL) {
     }).promise
 
     canvases.push(canvas)
-
-    canvas.toBlob((blob) => {
-      if (blob) {
-        console.info(URL.createObjectURL(blob))
-      }
-    })
   }
 
   const finalCanvas = document.createElement('canvas')
@@ -134,10 +128,8 @@ async function pdfToBlobURLImage (pdfFileURL) {
   return new Promise((resolve, reject) => {
     finalCanvas.toBlob((blob) => {
       if (blob) {
-        console.info('せいこう')
         resolve(URL.createObjectURL(blob))
       } else {
-        console.error('しっぱい')
         reject(new Error('Failed to create blob'))
       }
     })
