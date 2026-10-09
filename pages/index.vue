@@ -69,11 +69,16 @@
 
 <script>
 import { GlobalWorkerOptions, getDocument } from 'pdfjs-dist/build/pdf'
-import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.entry'
+// pdf.js の worker は別ファイルとして配信し、 PDF の解析を Web Worker で動かします。
+// この 1 ファイルだけを URL として扱うため、 loader をここで指定します。
+// eslint-disable-next-line import/no-webpack-loader-syntax
+import pdfjsWorkerURL from '!!file-loader?name=[name].[contenthash:7].[ext]!pdfjs-dist/build/pdf.worker.min.js'
 import { buildPdfLoadParams } from '@/utils/pdfLoadParams'
 import { classifyFile, loadErrorMessage } from '@/utils/fileKind'
 import { isTooSmall, normalizeRect, toCanvasPoint } from '@/utils/cropGeometry'
 import { computeStackLayout } from '@/utils/pdfLayout'
+
+GlobalWorkerOptions.workerSrc = pdfjsWorkerURL
 
 /**
  * 表示する画像の幅 (px) です。
@@ -87,9 +92,6 @@ const IMAGE_WIDTH = 500
  * @returns {Promise<string>} 結合された画像の Blob URL 文字列
  */
 async function pdfToBlobURLImage (pdfFileURL) {
-  // "ワーカースクリプト" を設定。
-  GlobalWorkerOptions.workerSrc = pdfjsWorker
-
   const pdf = await getDocument(buildPdfLoadParams(pdfFileURL)).promise
   const pages = []
   for (let i = 1; i <= pdf.numPages; i++) {

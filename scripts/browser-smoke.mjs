@@ -136,6 +136,14 @@ const scenarios = {
     expect(crop && crop.width === 50 && crop.height === 30 && same(crop.center, RED), `切り抜き結果が不正です: ${JSON.stringify(crop)}`)
   },
 
+  async 'pdf-parsed-in-worker' (page) {
+    const workers = []
+    page.on('workercreated', worker => workers.push(worker.url()))
+    await upload(page, 'two-pages.pdf')
+    await readImage(page)
+    expect(workers.some(url => url.includes('pdf.worker')), `PDF の解析が Web Worker で動いていません: ${JSON.stringify(workers)}`)
+  },
+
   async 'mixed-widths-white-background' (page) {
     await upload(page, 'mixed-widths.pdf')
     const image = await readImage(page)
