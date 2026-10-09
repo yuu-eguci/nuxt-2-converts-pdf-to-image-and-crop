@@ -23,6 +23,13 @@ docker compose run --rm app yarn lint
 docker compose run --rm app yarn test
 ```
 
+ブラウザでの動作確認 (2 ページの PDF を生成し、連結と切り抜きを確かめる) は、起動中のアプリに対してホストから実行する。
+
+```bash
+docker compose up -d
+CHROME_PATH="/path/to/chrome" yarn smoke:browser
+```
+
 PDF の読み込みでは `isEvalSupported: false` を指定して、 pdfjs-dist 2.x のフォント経由の任意 JS 実行 (CVE-2024-4367) を塞いでいる。
 
 ![](./docs/readme-drag-and-drop-pdf.png)
