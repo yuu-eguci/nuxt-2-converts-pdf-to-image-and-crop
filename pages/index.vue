@@ -65,6 +65,7 @@
 <script>
 import { GlobalWorkerOptions, getDocument } from 'pdfjs-dist/build/pdf'
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.entry'
+import { buildPdfLoadParams } from '@/utils/pdfLoadParams'
 
 /**
  * PDF ファイルの各ページを 1 つの画像に結合して Blob URL 形式で返す。
@@ -77,7 +78,7 @@ async function pdfToBlobURLImage (pdfFileURL) {
   GlobalWorkerOptions.workerSrc = pdfjsWorker
 
   // NOTE: 選択された PDF を読み込むタスクを用意している。
-  const loadingTask = getDocument(pdfFileURL)
+  const loadingTask = getDocument(buildPdfLoadParams(pdfFileURL))
 
   // "PDF ファイル読み込みの処理が終わったら、" の意味。
   const pdf = await loadingTask.promise
