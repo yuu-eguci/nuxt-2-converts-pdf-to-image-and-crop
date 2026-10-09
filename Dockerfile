@@ -1,6 +1,5 @@
-FROM node:22-bookworm AS dev
+FROM node:22-bookworm-slim AS dev
 
-# vue-jest 経由の deasync をネイティブビルドするため、 python3/g++ を含むフル版を使います。
 WORKDIR /app
 
 ENV HOST=0.0.0.0

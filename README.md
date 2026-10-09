@@ -6,7 +6,7 @@ PDF を画像にして、好きな範囲を切り抜くやつ。
 - Docker: 対応!
 - Node.js: 22!
 - Linter: ESLint 8 (@nuxtjs/eslint-config)!
-- Test: Jest 29 (+ @vue/test-utils 1)!
+- Test: Jest 29 + Puppeteer (ブラウザのスモークテスト)!
 - Nuxt: 2.17 / Vue: 2.7 / Vuetify: 2.7 / pdfjs-dist: 2.5.207
 
 ## パッと実行してみたい
@@ -16,10 +16,13 @@ docker compose up --build
 ```
 
 `http://localhost:3000` を開いて PDF を選ぶか、ドラッグ&ドロップ。
-全ページが幅 500px で縦に並んだ画像になる (ページ数が多いと、ブラウザの上限の高さ 32767px に収まるよう縮む) 。ドラッグで範囲を選ぶと、切り抜いた画像が下に出る (画像の外までドラッグすると端までを選ぶ。タッチ操作も可) 。
+全ページが幅 500px で縦に並んだ画像になる。
+ページ数が多いと、高さ 32767px 以下に収まるよう縮む。
+ドラッグで範囲を選ぶと、切り抜いた画像が下に出る。タッチ操作も可。
 PDF と画像以外のファイルや、読めないファイルを渡すとエラーメッセージが出る。
 
-本番と同じ静的ファイル (`yarn generate` の出力) を nginx で配信して確かめるならこちら。 `http://localhost:3080` で開ける。
+静的ファイルを nginx で配信して確かめるならこちら。
+`http://localhost:3080` で開ける。
 
 ```bash
 docker compose --profile prod up --build prod

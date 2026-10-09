@@ -254,7 +254,6 @@ export default {
       this.changeVSheetColor = false
       const files = event.dataTransfer.files
       // NOTE: とりあえず1ファイルに対応。
-      this.$debug(files)
       this.onFileChange(files[0])
     },
 
