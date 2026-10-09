@@ -14,7 +14,7 @@
     "smoke:browser": "node scripts/browser-smoke.mjs"
   },
   "dependencies": {
-    "core-js": "^3.25.3",
+    "core-js": "^3.50.0",
     "nuxt": "^2.15.8",
     "pdfjs-dist": "2.5.207",
     "vue": "^2.7.10",
