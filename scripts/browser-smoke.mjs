@@ -76,6 +76,19 @@ async function drop (page, name, type) {
   }, name, body, type)
 }
 
+/** ブラウザ内で単色の PNG を作り、ドロップ領域へドラッグ&ドロップします。 */
+async function dropPng (page, color, width, height) {
+  await page.evaluate(async (color, width, height) => {
+    const canvas = new OffscreenCanvas(width, height)
+    const context = canvas.getContext('2d')
+    context.fillStyle = `rgba(${color.join(',')})`
+    context.fillRect(0, 0, width, height)
+    const dataTransfer = new DataTransfer()
+    dataTransfer.items.add(new File([await canvas.convertToBlob()], 'color.png', { type: 'image/png' }))
+    document.querySelector('.drag-drop-area').dispatchEvent(new DragEvent('drop', { dataTransfer, bubbles: true, cancelable: true }))
+  }, color, width, height)
+}
+
 /** 表示中の画像を待ち、サイズと縦方向の位置ごとの色を返します。 */
 async function readImage (page, previousSrc = null) {
   await page.waitForFunction((previousSrc) => {
@@ -218,6 +231,27 @@ const scenarios = {
     await readImage(page, first.src)
   },
 
+  async 'latest-upload-wins' (page) {
+    // 時間のかかる PDF の読み込み中に、別の画像を読み込みます。
+    await upload(page, 'a4-100-pages.pdf')
+    await dropPng(page, GREEN, 100, 50)
+    await new Promise(resolve => setTimeout(resolve, 5000))
+    const images = await page.$$eval('img.uploaded-image', imgs => imgs.map(img => `${img.naturalWidth}x${img.naturalHeight}`))
+    expect(images.length === 1 && images[0] === '500x250', `最後に読み込んだ画像だけが表示されていません: ${JSON.stringify(images)}`)
+  },
+
+  async 'previous-image-url-released' (page, errors) {
+    await upload(page, 'two-pages.pdf')
+    const first = await readImage(page)
+    await dropPng(page, GREEN, 100, 50)
+    await readImage(page, first.src)
+    expect(errors.length === 0, `ブラウザでエラーが出ました: ${errors.join(' / ')}`)
+    const stillReadable = await page.evaluate(src => fetch(src).then(() => true, () => false), first.src)
+    expect(!stillReadable, '前の画像の Blob URL が解放されていません')
+    // 解放済みの URL を読もうとしたことによるエラーは想定どおりなので除きます。
+    errors.splice(0, errors.length, ...errors.filter(error => !error.includes('ERR_FILE_NOT_FOUND')))
+  },
+
   async 'broken-pdf-shows-error' (page) {
     await upload(page, 'broken.pdf')
     await page.waitForSelector('[role=alert]', { timeout: 30000 })
@@ -263,7 +297,7 @@ for (const [name, run] of Object.entries(scenarios)) {
   try {
     await page.goto(process.env.APP_URL || 'http://localhost:3000/', { waitUntil: 'load', timeout: 120000 })
     await page.waitForSelector('input[type=file]', { timeout: 120000 })
-    await run(page)
+    await run(page, errors)
     expect(errors.length === 0, `ブラウザでエラーが出ました: ${errors.join(' / ')}`)
     console.log(`OK: ${name}`)
   } catch (e) {

@@ -92,7 +92,21 @@ const IMAGE_WIDTH = 500
  * @returns {Promise<string>} 結合された画像の Blob URL 文字列
  */
 async function pdfToBlobURLImage (pdfFileURL) {
-  const pdf = await getDocument(buildPdfLoadParams(pdfFileURL)).promise
+  const loadingTask = getDocument(buildPdfLoadParams(pdfFileURL))
+  try {
+    return await renderStackedImage(await loadingTask.promise)
+  } finally {
+    // 読み込んだ PDF と worker を解放します。
+    loadingTask.destroy()
+  }
+}
+
+/**
+ * PDF の全ページを縦に並べて描画し、 Blob URL 形式で返す。
+ * @param {object} pdf - pdf.js の PDFDocumentProxy
+ * @returns {Promise<string>} 結合された画像の Blob URL 文字列
+ */
+async function renderStackedImage (pdf) {
   const pages = []
   for (let i = 1; i <= pdf.numPages; i++) {
     pages.push(await pdf.getPage(i))
@@ -168,6 +182,8 @@ export default {
       imgSrcs: [],
       errorMessage: '',
       croppedSrc: '',
+      // 読み込みのたびに増やし、古い読み込みの結果を捨てるのに使います。
+      loadSeq: 0,
       changeVSheetColor: false,
       isSelecting: false,
       selectionStart: { x: 0, y: 0 },
@@ -258,17 +274,29 @@ export default {
       }
 
       // 既存のアップロードファイルと切り抜き結果は削除しとく。
+      const seq = ++this.loadSeq
+      this.imgSrcs.forEach(src => URL.revokeObjectURL(src))
       this.imgSrcs = []
       this.croppedSrc = ''
       this.errorMessage = ''
 
+      const sourceURL = URL.createObjectURL(file)
       try {
         const imgSrc = kind === 'image'
-          ? await resizeImage(URL.createObjectURL(file))
-          : await pdfToBlobURLImage(URL.createObjectURL(file))
+          ? await resizeImage(sourceURL)
+          : await pdfToBlobURLImage(sourceURL)
+        // 読み込み中に別のファイルが選ばれていたら、この結果は捨てます。
+        if (seq !== this.loadSeq) {
+          URL.revokeObjectURL(imgSrc)
+          return
+        }
         this.imgSrcs.push(imgSrc)
       } catch (error) {
-        this.errorMessage = loadErrorMessage(kind, error)
+        if (seq === this.loadSeq) {
+          this.errorMessage = loadErrorMessage(kind, error)
+        }
+      } finally {
+        URL.revokeObjectURL(sourceURL)
       }
     },
 
