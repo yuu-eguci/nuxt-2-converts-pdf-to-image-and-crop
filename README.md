@@ -1,6 +1,7 @@
-# nuxt-2-converts-pdf-to-image-and-crop
+nuxt-2-converts-pdf-to-image-and-crop
+===
 
-✌🏽✌🏽 📜 Nuxt 2 + Vuetify 2 + pdfjs + crop image using canvas
+PDF を画像にして、好きな範囲を切り抜くやつ。
 
 - Docker: 対応!
 - Node.js: 22!
@@ -12,25 +13,30 @@
 
 ```bash
 docker compose up --build
-# http://localhost:3000 を開いて PDF をドラッグ&ドロップ
-# → 全ページが縦に連結された 1 枚の画像として表示され、矩形選択した範囲が切り抜かれて下に表示される
 ```
 
-lint とテストも Docker で回せる。
+`http://localhost:3000` を開いて PDF を選ぶか、ドラッグ&ドロップ。
+全ページが縦に並んだ画像になる。ドラッグで範囲を選ぶと、切り抜いた画像が下に出る。
+
+lint とテストも Docker でどうぞ。
 
 ```bash
 docker compose run --rm app yarn lint
 docker compose run --rm app yarn test
 ```
 
-ブラウザでの動作確認 (2 ページの PDF を生成し、連結と切り抜きを確かめる) は、起動中のアプリに対してホストから実行する。
+ブラウザでも確かめたいならこちら。ホスト側に Node.js 22・Yarn・Chrome が必要。
 
 ```bash
 docker compose up -d
+yarn install --frozen-lockfile --ignore-engines
 CHROME_PATH="/path/to/chrome" yarn smoke:browser
 ```
 
-PDF の読み込みでは `isEvalSupported: false` を指定して、 pdfjs-dist 2.x のフォント経由の任意 JS 実行 (CVE-2024-4367) を塞いでいる。
+赤と青の2ページ PDF を作って、画像化と切り抜きを確認する。成功すると `OK` が出る。
+
+pdfjs の既知の脆弱性 (CVE-2024-4367) には `isEvalSupported: false` の回避設定を入れてある。
+Nuxt 2・Vue 2・pdfjs 2 は古いままなので、新しい版への移行はまだ課題。
 
 ![](./docs/readme-drag-and-drop-pdf.png)
 
