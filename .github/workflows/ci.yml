@@ -51,7 +51,11 @@ jobs:
       - name: Run tests 🧪
         run: yarn test
 
-      - name: Build 🏗
-        run: yarn build
-        env:
-          NODE_OPTIONS: --openssl-legacy-provider
+      - name: Generate 🏗
+        run: yarn generate
+
+      - name: Browser smoke test 🌐
+        run: |
+          yarn start &
+          for i in $(seq 1 30); do curl -sf http://localhost:3000/ > /dev/null && break; sleep 1; done
+          CHROME_PATH="$(which google-chrome)" yarn smoke:browser

@@ -1,8 +1,18 @@
 services:
   app:
-    build: .
+    build:
+      context: .
+      target: dev
     ports:
       - "3000:3000"
     volumes:
       - .:/app
       - /app/node_modules
+
+  prod:
+    profiles: [prod]
+    build:
+      context: .
+      target: prod
+    ports:
+      - "3080:80"

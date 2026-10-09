@@ -19,6 +19,12 @@ docker compose up --build
 全ページが幅 500px で縦に並んだ画像になる (ページ数が多いと、ブラウザの上限の高さ 32767px に収まるよう縮む) 。ドラッグで範囲を選ぶと、切り抜いた画像が下に出る (画像の外までドラッグすると端までを選ぶ。タッチ操作も可) 。
 PDF と画像以外のファイルや、読めないファイルを渡すとエラーメッセージが出る。
 
+本番と同じ静的ファイル (`yarn generate` の出力) を nginx で配信して確かめるならこちら。 `http://localhost:3080` で開ける。
+
+```bash
+docker compose --profile prod up --build prod
+```
+
 lint とテストも Docker でどうぞ。
 
 ```bash
@@ -32,6 +38,7 @@ docker compose run --rm app yarn test
 docker compose up -d
 yarn install --frozen-lockfile --ignore-engines
 CHROME_PATH="/path/to/chrome" yarn smoke:browser
+# 本番の配信を確かめるなら APP_URL=http://localhost:3080/ をつける
 ```
 
 テスト用の PDF などをその場で作り、画像化・切り抜き・エラー表示をシナリオごとに確認する。全部通ると `OK` が出る。
