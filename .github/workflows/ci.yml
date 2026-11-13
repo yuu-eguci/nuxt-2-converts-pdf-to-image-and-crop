@@ -48,6 +48,9 @@ jobs:
       - name: Run linter 👀
         run: yarn lint
 
+      - name: Run type check
+        run: yarn typecheck
+
       - name: Run tests 🧪
         run: yarn test
 
