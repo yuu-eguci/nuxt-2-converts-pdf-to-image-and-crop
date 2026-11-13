@@ -264,8 +264,7 @@ export default defineComponent({
       return toCanvasPoint(event, canvas, canvas.getBoundingClientRect())
     },
 
-    // NOTE: v-for の中の ref は配列になる。
-    //       ということで index で取得できます。
+    // v-for の中の ref は配列になるため、 index で取り出します。
     overlayCanvas (index: number): HTMLCanvasElement {
       return (this.$refs.overlayCanvas as HTMLCanvasElement[])[index]
     },
