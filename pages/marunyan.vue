@@ -72,7 +72,7 @@
 </template>
 
 <script>
-import { getMarunyanParagraphs } from '~/utils/MarunyanUtils.js'
+import { getMarunyanParagraphs } from '~/utils/MarunyanUtils'
 
 const IMAGE_SOURCE_PATH = '/marunyan.png'
 const ANNOTATE_IMAGE_RESPONSE_JSON_PATH = '/annotate_image_response.json'

@@ -42,14 +42,14 @@ describe('toCanvasPoint', () => {
 
 describe('isTooSmall', () => {
   test('a click without moving is too small', () => {
-    expect(isTooSmall({ x: 10, y: 10, width: 0, height: 0 })).toBe(true)
+    expect(isTooSmall({ width: 0, height: 0 })).toBe(true)
   })
 
   test('a thin line is too small', () => {
-    expect(isTooSmall({ x: 10, y: 10, width: 50, height: 1 })).toBe(true)
+    expect(isTooSmall({ width: 50, height: 1 })).toBe(true)
   })
 
   test('a real selection is not too small', () => {
-    expect(isTooSmall({ x: 10, y: 10, width: 2, height: 2 })).toBe(false)
+    expect(isTooSmall({ width: 2, height: 2 })).toBe(false)
   })
 })

@@ -1,10 +1,19 @@
+export interface Point {
+  x: number
+  y: number
+}
+
+export interface Size {
+  width: number
+  height: number
+}
+
+export interface Rect extends Point, Size {}
+
 /**
  * 2 点から、左上の座標と幅・高さを持つ矩形を作ります。どの向きにドラッグしても同じ矩形になります。
- * @param {{ x: number, y: number }} start
- * @param {{ x: number, y: number }} end
- * @returns {{ x: number, y: number, width: number, height: number }}
  */
-export function normalizeRect (start, end) {
+export function normalizeRect (start: Point, end: Point): Rect {
   const x = Math.round(Math.min(start.x, end.x))
   const y = Math.round(Math.min(start.y, end.y))
   return {
@@ -17,12 +26,8 @@ export function normalizeRect (start, end) {
 
 /**
  * 点を画像の範囲内に収めます。
- * @param {{ x: number, y: number }} point
- * @param {number} width
- * @param {number} height
- * @returns {{ x: number, y: number }}
  */
-export function clampPoint (point, width, height) {
+export function clampPoint (point: Point, width: number, height: number): Point {
   return {
     x: Math.min(Math.max(point.x, 0), width),
     y: Math.min(Math.max(point.y, 0), height)
@@ -31,12 +36,14 @@ export function clampPoint (point, width, height) {
 
 /**
  * ポインタの座標を、キャンバスのピクセル座標へ変換します。キャンバスの外の点は端に収めます。
- * @param {{ clientX: number, clientY: number }} event
- * @param {{ width: number, height: number }} canvas - キャンバスのピクセルサイズ
- * @param {{ left: number, top: number, width: number, height: number }} rect - 画面上の表示位置とサイズ
- * @returns {{ x: number, y: number }}
+ * @param canvas - キャンバスのピクセルサイズ
+ * @param rect - 画面上の表示位置とサイズ
  */
-export function toCanvasPoint (event, canvas, rect) {
+export function toCanvasPoint (
+  event: { clientX: number, clientY: number },
+  canvas: Size,
+  rect: { left: number, top: number } & Size
+): Point {
   return clampPoint({
     x: (event.clientX - rect.left) * canvas.width / rect.width,
     y: (event.clientY - rect.top) * canvas.height / rect.height
@@ -45,10 +52,7 @@ export function toCanvasPoint (event, canvas, rect) {
 
 /**
  * クリックだけ、または線のように細い選択かどうかを返します。
- * @param {{ width: number, height: number }} rect
- * @param {number} [min=2]
- * @returns {boolean}
  */
-export function isTooSmall (rect, min = 2) {
+export function isTooSmall (rect: Size, min = 2): boolean {
   return rect.width < min || rect.height < min
 }
