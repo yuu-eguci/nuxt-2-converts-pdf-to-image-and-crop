@@ -277,6 +277,21 @@ const scenarios = {
     await drop(page, 'broken.png', 'image/png')
     await page.waitForSelector('[role=alert]', { timeout: 30000 })
     expect(/image/i.test(await alertText(page)), '画像を読めない旨のメッセージがありません')
+  },
+
+  async 'marunyan-click-shows-text' (page) {
+    await page.goto(new URL('marunyan', page.url()).href, { waitUntil: 'load', timeout: 120000 })
+    await page.waitForFunction(() => {
+      const img = document.querySelector('img')
+      return img && img.complete && img.naturalWidth > 0
+    }, { timeout: 60000 })
+    // 段落の読み込みと矩形の描画を待ちます。
+    await new Promise(resolve => setTimeout(resolve, 500))
+    // 「こんにちは」の段落 (24, 61)-(236, 98) の中をクリックします。
+    const box = await (await page.$('canvas:last-of-type')).boundingBox()
+    await page.mouse.click(box.x + 100, box.y + 80)
+    const text = await page.$eval('input[type=text]', input => input.value)
+    expect(text === 'こんにちは', `クリックした段落のテキストが表示されません: ${JSON.stringify(text)}`)
   }
 }
 

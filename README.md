@@ -5,7 +5,8 @@ PDF を画像にして、好きな範囲を切り抜くやつ。
 
 - Docker: 対応!
 - Node.js: 22!
-- Linter: ESLint 8 (@nuxtjs/eslint-config)!
+- TypeScript: 5.0 (vue-tsc で .vue も型チェック)!
+- Linter: ESLint 8 (@nuxtjs/eslint-config-typescript)!
 - Test: Jest 29 + Puppeteer (ブラウザのスモークテスト)!
 - Nuxt: 2.17 / Vue: 2.7 / Vuetify: 2.7 / pdfjs-dist: 2.5.207
 
@@ -28,12 +29,16 @@ PDF と画像以外のファイルや、読めないファイルを渡すとエ�
 docker compose --profile prod up --build prod
 ```
 
-lint とテストも Docker でどうぞ。
+lint とテストも Docker でどうぞ。型チェックは `yarn typecheck` で実行します。
 
 ```bash
 docker compose run --rm app yarn lint
+docker compose run --rm app yarn typecheck
 docker compose run --rm app yarn test
 ```
+
+アプリのコード (`pages/`・`layouts/`・`utils/`・`test/`・`nuxt.config.ts`) は TypeScript で書いています。
+pdfjs-dist 2.5.207 には型定義がないため、使う API だけを `types/` で宣言しています。
 
 ブラウザでも確かめたいならこちら。ホスト側に Node.js 22・Yarn・Chrome が必要。
 

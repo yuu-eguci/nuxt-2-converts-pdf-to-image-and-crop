@@ -71,26 +71,27 @@
   </v-row>
 </template>
 
-<script>
-import { getMarunyanParagraphs } from '~/utils/MarunyanUtils.js'
+<script lang="ts">
+import { defineComponent } from 'vue'
+import { getMarunyanParagraphs } from '~/utils/MarunyanUtils'
+import type { Paragraph } from '~/utils/MarunyanUtils'
 
 const IMAGE_SOURCE_PATH = '/marunyan.png'
 const ANNOTATE_IMAGE_RESPONSE_JSON_PATH = '/annotate_image_response.json'
 
-export default {
+export default defineComponent({
   name: 'MarunyanPage',
   data () {
     return {
       imgSrc: IMAGE_SOURCE_PATH,
-      marunyanParagraphs: [],
-      activityLogs: [],
+      marunyanParagraphs: [] as Paragraph[],
+      activityLogs: [] as string[],
       mainText: ''
     }
   },
   async created () {
     this.activityLogs.unshift('created が呼ばれたよ。')
     this.marunyanParagraphs = await getMarunyanParagraphs(ANNOTATE_IMAGE_RESPONSE_JSON_PATH)
-    this.$debug(this.marunyanParagraphs)
   },
   mounted () {
     this.activityLogs.unshift('mounted が呼ばれたよ。')
@@ -100,16 +101,16 @@ export default {
       // "canvas のサイズ = 画像のサイズ" にします。
       // NOTE: v-for の中の ref は配列になる。
       //       ということで index で取得できます。
-      const rectangleCanvas = this.$refs.rectangleCanvas
-      const colorFillCanvas = this.$refs.colorFillCanvas
-      const image = this.$refs.marunyanImage
+      const rectangleCanvas = this.$refs.rectangleCanvas as HTMLCanvasElement
+      const colorFillCanvas = this.$refs.colorFillCanvas as HTMLCanvasElement
+      const image = this.$refs.marunyanImage as HTMLImageElement
       rectangleCanvas.width = image.naturalWidth
       rectangleCanvas.height = image.naturalHeight
       colorFillCanvas.width = image.naturalWidth
       colorFillCanvas.height = image.naturalHeight
 
       // 矩形を描画
-      const ctx = rectangleCanvas.getContext('2d')
+      const ctx = rectangleCanvas.getContext('2d') as CanvasRenderingContext2D
       for (const paragraph of this.marunyanParagraphs) {
         const { text, leftTop, rightTop, rightBottom, leftBottom } = paragraph
         ctx.beginPath()
@@ -125,11 +126,12 @@ export default {
       }
     },
 
-    onClickCanvas (event) {
-      const canvasRect = this.$refs.colorFillCanvas.getBoundingClientRect()
+    onClickCanvas (event: MouseEvent) {
+      const colorFillCanvas = this.$refs.colorFillCanvas as HTMLCanvasElement
+      const canvasRect = colorFillCanvas.getBoundingClientRect()
       const x = event.clientX - canvasRect.left
       const y = event.clientY - canvasRect.top
-      const ctx = this.$refs.colorFillCanvas.getContext('2d')
+      const ctx = colorFillCanvas.getContext('2d') as CanvasRenderingContext2D
       for (const paragraph of this.marunyanParagraphs) {
         const { text, leftTop, rightTop, leftBottom } = paragraph
         if (
@@ -143,7 +145,7 @@ export default {
           ctx.fillRect(leftTop.x, leftTop.y, rightTop.x - leftTop.x, leftBottom.y - leftTop.y) // 矩形を塗る
           setTimeout(() => {
             // すべての矩形の色をクリア（オプション）
-            ctx.clearRect(0, 0, this.$refs.colorFillCanvas.width, this.$refs.colorFillCanvas.height)
+            ctx.clearRect(0, 0, colorFillCanvas.width, colorFillCanvas.height)
           }, 1000)
           this.activityLogs.unshift(`クリックした (${x}, ${y}) には ${text} があるよ。`)
           return
@@ -152,5 +154,5 @@ export default {
       this.activityLogs.unshift(`クリックした (${x}, ${y}) は矩形の外だよ。`)
     }
   }
-}
+})
 </script>

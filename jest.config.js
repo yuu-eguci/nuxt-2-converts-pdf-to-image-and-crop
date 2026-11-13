@@ -4,11 +4,11 @@ module.exports = {
     '^~/(.*)$': '<rootDir>/$1'
   },
   transform: {
-    '^.+\\.js$': 'babel-jest'
+    '^.+\\.(js|ts)$': 'babel-jest'
   },
   collectCoverage: true,
   collectCoverageFrom: [
-    '<rootDir>/utils/**/*.js'
+    '<rootDir>/utils/**/*.ts'
   ],
   testEnvironment: 'node'
 }

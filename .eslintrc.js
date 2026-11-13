@@ -5,12 +5,8 @@ module.exports = {
     'jest/globals': true,
     node: true
   },
-  parserOptions: {
-    parser: '@babel/eslint-parser',
-    requireConfigFile: false
-  },
   extends: [
-    '@nuxtjs',
+    '@nuxtjs/eslint-config-typescript',
     'plugin:nuxt/recommended'
   ],
   plugins: [

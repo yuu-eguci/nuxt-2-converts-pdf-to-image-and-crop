@@ -2,12 +2,38 @@
 // Google Cloud Vision API で解析した結果だよ。
 // これを paragraph ごとに整理して export するのが、このファイルの役割だよ。
 
-async function main (jsonPath) {
-  const paragraphs = []
+import type { Point } from './cropGeometry'
+
+/**
+ * Cloud Vision API の AnnotateImageResponse のうち、段落の抽出に使う部分だけの型です。
+ */
+interface AnnotateImageResponse {
+  fullTextAnnotation: {
+    pages: {
+      blocks: {
+        paragraphs: {
+          boundingBox: { vertices: Point[] }
+          words: { symbols: { text: string }[] }[]
+        }[]
+      }[]
+    }[]
+  }
+}
+
+export interface Paragraph {
+  text: string
+  leftTop: Point
+  rightTop: Point
+  rightBottom: Point
+  leftBottom: Point
+}
+
+async function main (jsonPath: string): Promise<Paragraph[]> {
+  const paragraphs: Paragraph[] = []
 
   // JSON ファイルを読み込む
   const response = await fetch(jsonPath)
-  const originalJson = await response.json()
+  const originalJson: AnnotateImageResponse = await response.json()
 
   const page = originalJson.fullTextAnnotation.pages[0]
   for (const block of page.blocks) {
